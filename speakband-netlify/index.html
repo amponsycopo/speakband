@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SpeakBand — AI IELTS Speaking Practice</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0f1e;
+  --surface: #111827;
+  --surface2: #1a2333;
+  --border: rgba(255,255,255,0.07);
+  --accent: #4f8ef7;
+  --accent2: #7c3aed;
+  --green: #10b981;
+  --yellow: #f59e0b;
+  --red: #ef4444;
+  --text: #f1f5f9;
+  --muted: #64748b;
+  --muted2: #94a3b8;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; min-height:100vh; overflow-x:hidden; }
+body::before {
+  content:''; position:fixed; inset:0; z-index:0;
+  background: radial-gradient(ellipse 80% 50% at 20% 20%, rgba(79,142,247,0.08) 0%, transparent 60%),
+              radial-gradient(ellipse 60% 40% at 80% 80%, rgba(124,58,237,0.06) 0%, transparent 60%);
+  pointer-events:none;
+}
+.wrap { position:relative; z-index:1; max-width:720px; margin:0 auto; padding:0 20px 60px; }
+header { padding:24px 0 20px; display:flex; align-items:center; justify-content:space-between; }
+.logo { display:flex; align-items:center; gap:10px; }
+.logo-icon { width:36px; height:36px; background:linear-gradient(135deg, var(--accent), var(--accent2)); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; }
+.logo-text { font-family:'Instrument Serif',serif; font-size:22px; }
+.logo-text span { color:var(--accent); }
+.badge { background:rgba(79,142,247,0.1); border:1px solid rgba(79,142,247,0.25); color:var(--accent); font-size:11px; font-weight:600; padding:4px 12px; border-radius:100px; }
+
+.hero { padding:40px 0 32px; text-align:center; }
+.hero h1 { font-family:'Instrument Serif',serif; font-size:42px; line-height:1.15; margin-bottom:14px; }
+.hero h1 em { font-style:italic; color:var(--accent); }
+.hero p { font-size:15px; color:var(--muted2); line-height:1.7; max-width:480px; margin:0 auto 28px; }
+.band-row { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:32px; }
+.band-pill { background:var(--surface); border:1px solid var(--border); border-radius:100px; padding:6px 14px; font-size:12px; font-weight:600; color:var(--muted2); }
+.band-pill.b9 { border-color:rgba(16,185,129,0.4); color:var(--green); background:rgba(16,185,129,0.08); }
+.band-pill.b8 { border-color:rgba(79,142,247,0.4); color:var(--accent); background:rgba(79,142,247,0.08); }
+.band-pill.b7 { border-color:rgba(245,158,11,0.4); color:var(--yellow); background:rgba(245,158,11,0.08); }
+
+/* PART SELECTOR */
+#partSelector { margin-bottom:24px; }
+#partSelector h3 { font-size:13px; font-weight:600; color:var(--muted2); letter-spacing:1px; text-transform:uppercase; margin-bottom:14px; }
+.part-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.part-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:18px 14px; cursor:pointer; transition:all 0.2s; text-align:center; }
+.part-card:hover { border-color:rgba(79,142,247,0.4); background:var(--surface2); transform:translateY(-2px); }
+.part-card.active { border-color:var(--accent); background:rgba(79,142,247,0.08); }
+.part-num { font-family:'Instrument Serif',serif; font-size:32px; color:var(--accent); margin-bottom:6px; }
+.part-name { font-size:12px; font-weight:600; color:var(--text); margin-bottom:4px; }
+.part-desc { font-size:11px; color:var(--muted); line-height:1.5; }
+
+#startBtn { display:none; width:100%; background:linear-gradient(135deg, var(--accent), var(--accent2)); color:#fff; border:none; border-radius:14px; padding:16px; font-family:'DM Sans',sans-serif; font-size:15px; font-weight:700; cursor:pointer; margin-bottom:24px; transition:opacity 0.2s; }
+#startBtn:hover { opacity:0.88; }
+
+/* CHAT */
+#chatArea { display:none; }
+.part-header { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:16px 20px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; }
+.part-label { font-size:12px; font-weight:600; color:var(--accent); letter-spacing:1px; text-transform:uppercase; }
+.part-title { font-size:14px; font-weight:600; color:var(--text); }
+.q-counter { font-size:12px; color:var(--muted); background:var(--surface2); padding:4px 10px; border-radius:100px; }
+
+#messages { min-height:280px; max-height:420px; overflow-y:auto; margin-bottom:16px; display:flex; flex-direction:column; gap:12px; padding:4px 0; }
+#messages::-webkit-scrollbar { width:4px; }
+#messages::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+.msg { display:flex; gap:10px; animation:fadeUp 0.3s ease; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+.msg.examiner { align-items:flex-start; }
+.msg.user { align-items:flex-start; flex-direction:row-reverse; }
+.msg-avatar { width:32px; height:32px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:14px; }
+.msg.examiner .msg-avatar { background:linear-gradient(135deg, var(--accent), var(--accent2)); }
+.msg.user .msg-avatar { background:var(--surface2); border:1px solid var(--border); }
+.msg-bubble { max-width:80%; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 16px; }
+.msg.user .msg-bubble { background:rgba(79,142,247,0.1); border-color:rgba(79,142,247,0.2); }
+.msg-bubble p { font-size:14px; line-height:1.65; }
+.msg-bubble .msg-label { font-size:10px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--muted); margin-bottom:5px; }
+
+.typing-dots { display:flex; gap:4px; align-items:center; padding:4px 0; }
+.typing-dots span { width:6px; height:6px; background:var(--muted); border-radius:50%; animation:bounce 1.2s infinite; }
+.typing-dots span:nth-child(2) { animation-delay:0.2s; }
+.typing-dots span:nth-child(3) { animation-delay:0.4s; }
+@keyframes bounce { 0%,60%,100% { transform:translateY(0); } 30% { transform:translateY(-5px); } }
+
+#inputArea { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:14px 16px; }
+#userInput { width:100%; background:transparent; border:none; outline:none; color:var(--text); font-family:'DM Sans',sans-serif; font-size:14px; resize:none; line-height:1.6; min-height:60px; max-height:140px; }
+#userInput::placeholder { color:var(--muted); }
+.input-actions { display:flex; align-items:center; justify-content:space-between; margin-top:10px; }
+.char-hint { font-size:11px; color:var(--muted); }
+.send-btn { background:linear-gradient(135deg, var(--accent), var(--accent2)); color:#fff; border:none; border-radius:10px; padding:8px 18px; font-family:'DM Sans',sans-serif; font-size:13px; font-weight:600; cursor:pointer; transition:opacity 0.2s; }
+.send-btn:hover { opacity:0.85; }
+.send-btn:disabled { opacity:0.35; cursor:not-allowed; }
+
+/* FEEDBACK */
+#feedbackArea { display:none; margin-top:20px; }
+.feedback-card { background:var(--surface); border:1px solid var(--border); border-radius:20px; overflow:hidden; }
+.feedback-header { background:linear-gradient(135deg, rgba(79,142,247,0.15), rgba(124,58,237,0.15)); padding:20px 24px; border-bottom:1px solid var(--border); }
+.feedback-header h3 { font-family:'Instrument Serif',serif; font-size:22px; margin-bottom:4px; }
+.feedback-header p { font-size:13px; color:var(--muted2); }
+.band-display { display:flex; align-items:center; gap:16px; margin-top:16px; }
+.band-score { font-family:'Instrument Serif',serif; font-size:56px; line-height:1; color:var(--accent); }
+.band-label { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
+.band-desc { font-size:14px; font-weight:600; }
+.criteria-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:20px 24px; }
+.criterion { background:var(--surface2); border-radius:12px; padding:14px; }
+.criterion-name { font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; }
+.criterion-score { font-family:'Instrument Serif',serif; font-size:28px; margin-bottom:4px; }
+.criterion-score.high { color:var(--green); }
+.criterion-score.mid { color:var(--yellow); }
+.criterion-score.low { color:var(--red); }
+.criterion-note { font-size:12px; color:var(--muted2); line-height:1.5; }
+.feedback-body { padding:20px 24px; border-top:1px solid var(--border); }
+.feedback-section { margin-bottom:16px; }
+.feedback-section h4 { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-bottom:10px; }
+.feedback-section ul { list-style:none; display:flex; flex-direction:column; gap:8px; }
+.feedback-section ul li { font-size:13px; color:var(--muted2); line-height:1.6; padding-left:18px; position:relative; }
+.feedback-section ul li::before { content:'→'; position:absolute; left:0; color:var(--accent); font-size:11px; top:2px; }
+.feedback-section.good ul li::before { content:'✓'; color:var(--green); }
+.feedback-section.improve ul li::before { content:'↑'; color:var(--yellow); }
+.retry-btn { width:100%; background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:12px; padding:14px; font-family:'DM Sans',sans-serif; font-size:14px; font-weight:600; cursor:pointer; margin-top:12px; transition:all 0.2s; }
+.retry-btn:hover { border-color:rgba(79,142,247,0.4); color:var(--accent); }
+
+.features { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:32px 0; }
+.feature { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:18px 16px; }
+.feature-icon { font-size:22px; margin-bottom:10px; }
+.feature-title { font-size:13px; font-weight:600; margin-bottom:4px; }
+.feature-desc { font-size:12px; color:var(--muted); line-height:1.5; }
+
+.toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:10px 18px; font-size:13px; z-index:1000; animation:fadeUp 0.3s ease; box-shadow:0 8px 32px rgba(0,0,0,0.4); white-space:nowrap; }
+
+@media(max-width:480px) {
+  .hero h1 { font-size:32px; }
+  .part-cards { grid-template-columns:1fr; }
+  .criteria-grid { grid-template-columns:1fr; }
+  .features { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🎯</div>
+      <div class="logo-text">Speak<span>Band</span></div>
+    </div>
+    <div class="badge">FREE BETA</div>
+  </header>
+
+  <div class="hero">
+    <h1>Practice IELTS Speaking<br>with <em>AI Examiner</em></h1>
+    <p>Get real-time feedback on your band score across all 4 criteria — available 24/7, completely free during beta.</p>
+    <div class="band-row">
+      <div class="band-pill b9">Band 9 Target</div>
+      <div class="band-pill b8">Band 8 Target</div>
+      <div class="band-pill b7">Band 7 Target</div>
+      <div class="band-pill">All Levels</div>
+    </div>
+  </div>
+
+  <!-- PART SELECTOR -->
+  <div id="partSelector">
+    <h3>Choose a Part to Practice</h3>
+    <div class="part-cards">
+      <div class="part-card" onclick="selectPart(1)">
+        <div class="part-num">1</div>
+        <div class="part-name">Introduction</div>
+        <div class="part-desc">Familiar topics — home, work, hobbies, daily life</div>
+      </div>
+      <div class="part-card" onclick="selectPart(2)">
+        <div class="part-num">2</div>
+        <div class="part-name">Long Turn</div>
+        <div class="part-desc">Speak 1-2 minutes about a cue card topic</div>
+      </div>
+      <div class="part-card" onclick="selectPart(3)">
+        <div class="part-num">3</div>
+        <div class="part-name">Discussion</div>
+        <div class="part-desc">In-depth discussion on abstract ideas</div>
+      </div>
+    </div>
+  </div>
+
+  <button id="startBtn" onclick="startTest()">Start Practice Session →</button>
+
+  <!-- CHAT AREA -->
+  <div id="chatArea">
+    <div class="part-header">
+      <div>
+        <div class="part-label" id="partLabel">Part 1</div>
+        <div class="part-title" id="partTitle">Introduction & Interview</div>
+      </div>
+      <div class="q-counter" id="qCounter">Q 1 of 5</div>
+    </div>
+    <div id="messages"></div>
+    <div id="inputArea">
+      <textarea id="userInput" placeholder="Type your answer here... (aim for natural spoken English)" rows="3"></textarea>
+      <div class="input-actions">
+        <span class="char-hint">Enter to send · Shift+Enter for new line</span>
+        <button class="send-btn" id="sendBtn" onclick="sendAnswer()">Send →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEEDBACK -->
+  <div id="feedbackArea">
+    <div class="feedback-card">
+      <div class="feedback-header">
+        <h3>Your Session Feedback</h3>
+        <p>Based on official IELTS Speaking assessment criteria</p>
+        <div class="band-display">
+          <div class="band-score" id="overallBand">—</div>
+          <div>
+            <div class="band-label">Estimated Band Score</div>
+            <div class="band-desc" id="bandDesc">Calculating...</div>
+          </div>
+        </div>
+      </div>
+      <div class="criteria-grid">
+        <div class="criterion">
+          <div class="criterion-name">Fluency & Coherence</div>
+          <div class="criterion-score" id="fc">—</div>
+          <div class="criterion-note" id="fcNote">Analyzing...</div>
+        </div>
+        <div class="criterion">
+          <div class="criterion-name">Lexical Resource</div>
+          <div class="criterion-score" id="lr">—</div>
+          <div class="criterion-note" id="lrNote">Analyzing...</div>
+        </div>
+        <div class="criterion">
+          <div class="criterion-name">Grammatical Range</div>
+          <div class="criterion-score" id="gr">—</div>
+          <div class="criterion-note" id="grNote">Analyzing...</div>
+        </div>
+        <div class="criterion">
+          <div class="criterion-name">Pronunciation</div>
+          <div class="criterion-score" id="pron">—</div>
+          <div class="criterion-note" id="pronNote">Based on written patterns</div>
+        </div>
+      </div>
+      <div class="feedback-body">
+        <div class="feedback-section good">
+          <h4>✓ What you did well</h4>
+          <ul id="goodPoints"></ul>
+        </div>
+        <div class="feedback-section improve">
+          <h4>↑ Areas to improve</h4>
+          <ul id="improvePoints"></ul>
+        </div>
+        <div class="feedback-section">
+          <h4>💡 Examiner tip</h4>
+          <ul id="examinerTip"></ul>
+        </div>
+      </div>
+    </div>
+    <button class="retry-btn" onclick="resetSession()">← Practice Another Part</button>
+  </div>
+
+  <div class="features">
+    <div class="feature">
+      <div class="feature-icon">🎯</div>
+      <div class="feature-title">Official Criteria</div>
+      <div class="feature-desc">Scored on real IELTS band descriptors</div>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">⚡</div>
+      <div class="feature-title">Instant Feedback</div>
+      <div class="feature-desc">Get your score in seconds, not days</div>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🔄</div>
+      <div class="feature-title">Unlimited Practice</div>
+      <div class="feature-desc">Practice anytime, as many sessions as you need</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let selectedPart = null;
+let questionCount = 0;
+let maxQuestions = 5;
+let conversationHistory = [];
+let sessionAnswers = [];
+let isLoading = false;
+let sessionComplete = false;
+
+const partConfig = {
+  1: { title:'Introduction & Interview', questions:5 },
+  2: { title:'Individual Long Turn', questions:1 },
+  3: { title:'Two-way Discussion', questions:4 }
+};
+
+function selectPart(part) {
+  selectedPart = part;
+  document.querySelectorAll('.part-card').forEach((c,i) => c.classList.toggle('active', i+1===part));
+  document.getElementById('startBtn').style.display = 'block';
+}
+
+async function startTest() {
+  if (!selectedPart) return;
+  document.getElementById('partSelector').style.display = 'none';
+  document.getElementById('startBtn').style.display = 'none';
+  document.getElementById('chatArea').style.display = 'block';
+
+  maxQuestions = partConfig[selectedPart].questions;
+  document.getElementById('partLabel').textContent = `Part ${selectedPart}`;
+  document.getElementById('partTitle').textContent = partConfig[selectedPart].title;
+  updateCounter();
+
+  conversationHistory = [];
+  sessionAnswers = [];
+  questionCount = 0;
+  sessionComplete = false;
+
+  const response = await callAPI("Begin the IELTS speaking test. Greet the candidate warmly and ask your first question.");
+  addMessage('examiner', response);
+}
+
+function getSystemPrompt() {
+  return `You are a certified IELTS examiner conducting a Part ${selectedPart} speaking test.
+
+PART ${selectedPart} INSTRUCTIONS:
+${selectedPart===1 ? 'Ask about familiar topics: hometown, work/studies, hobbies, daily routines, family. Keep it conversational.' :
+  selectedPart===2 ? 'Give ONE cue card topic. Say "Here is your cue card. You have 1 minute to prepare, then speak for 1-2 minutes." After they respond, conclude.' :
+  'Ask abstract analytical questions. Push for opinions and justifications.'}
+
+RULES:
+- Ask exactly ${maxQuestions} questions total
+- After each answer, give ONE brief natural examiner response then ask the next question
+- After the final (${maxQuestions}th) answer, say: "Thank you, that concludes Part ${selectedPart}." then output exactly: [SESSION_COMPLETE]
+- Do NOT give scoring feedback during the test — only after [SESSION_COMPLETE]
+- Be professional, neutral, and encouraging like a real examiner`;
+}
+
+async function sendAnswer() {
+  if (isLoading || sessionComplete) return;
+  const input = document.getElementById('userInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  addMessage('user', text);
+  sessionAnswers.push(text);
+  questionCount++;
+  updateCounter();
+
+  setLoading(true);
+  const response = await callAPI(text);
+  setLoading(false);
+
+  if (response.includes('[SESSION_COMPLETE]')) {
+    const clean = response.replace('[SESSION_COMPLETE]', '').trim();
+    addMessage('examiner', clean);
+    sessionComplete = true;
+    document.getElementById('inputArea').style.display = 'none';
+    setTimeout(generateFeedback, 800);
+  } else {
+    addMessage('examiner', response);
+  }
+}
+
+async function callAPI(userMessage) {
+  conversationHistory.push({ role:'user', content:userMessage });
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        system: getSystemPrompt(),
+        messages: conversationHistory
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    const text = data.content[0].text;
+    conversationHistory.push({ role:'assistant', content:text });
+    return text;
+  } catch(e) {
+    showToast('Connection error — please try again');
+    return "I'm sorry, there was an error. Please try again.";
+  }
+}
+
+async function generateFeedback() {
+  document.getElementById('feedbackArea').style.display = 'block';
+  document.getElementById('feedbackArea').scrollIntoView({ behavior:'smooth' });
+
+  const answersText = sessionAnswers.map((a,i) => `Answer ${i+1}: "${a}"`).join('\n');
+  const prompt = `Analyze these IELTS Part ${selectedPart} candidate answers and respond ONLY with valid JSON:
+
+${answersText}
+
+JSON format:
+{
+  "overall": 6.5,
+  "bandDesc": "Competent User",
+  "fc": 6.5, "fcNote": "brief note",
+  "lr": 7.0, "lrNote": "brief note",
+  "gr": 6.5, "grNote": "brief note",
+  "pron": 6.0, "pronNote": "estimated from writing",
+  "goodPoints": ["point 1", "point 2", "point 3"],
+  "improvePoints": ["point 1", "point 2", "point 3"],
+  "examinerTip": ["one specific actionable tip"]
+}
+
+Be accurate and honest. Use official IELTS band standards.`;
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        system: 'You are an expert IELTS examiner. Respond only with valid JSON, no markdown.',
+        messages: [{ role:'user', content:prompt }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content[0].text;
+    const match = text.match(/\{[\s\S]*\}/);
+    if (match) renderFeedback(JSON.parse(match[0]));
+  } catch(e) {
+    showToast('Error generating feedback');
+  }
+}
+
+function renderFeedback(fb) {
+  const cls = s => s >= 7.5 ? 'high' : s >= 6 ? 'mid' : 'low';
+  document.getElementById('overallBand').textContent = fb.overall;
+  document.getElementById('bandDesc').textContent = fb.bandDesc;
+  ['fc','lr','gr','pron'].forEach(id => {
+    document.getElementById(id).textContent = fb[id];
+    document.getElementById(id).className = `criterion-score ${cls(fb[id])}`;
+    document.getElementById(id+'Note').textContent = fb[id+'Note'];
+  });
+  const renderList = (id, items) => {
+    document.getElementById(id).innerHTML = items.map(i => `<li>${i}</li>`).join('');
+  };
+  renderList('goodPoints', fb.goodPoints);
+  renderList('improvePoints', fb.improvePoints);
+  renderList('examinerTip', fb.examinerTip);
+}
+
+function addMessage(role, text) {
+  const messages = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  div.innerHTML = `
+    <div class="msg-avatar">${role==='examiner'?'🎓':'👤'}</div>
+    <div class="msg-bubble">
+      <div class="msg-label">${role==='examiner'?'EXAMINER':'YOU'}</div>
+      <p>${text.replace(/\n/g,'<br>')}</p>
+    </div>`;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function setLoading(state) {
+  isLoading = state;
+  document.getElementById('sendBtn').disabled = state;
+  const messages = document.getElementById('messages');
+  const existing = document.getElementById('typingIndicator');
+  if (state && !existing) {
+    const div = document.createElement('div');
+    div.className = 'msg examiner'; div.id = 'typingIndicator';
+    div.innerHTML = `<div class="msg-avatar">🎓</div><div class="msg-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>`;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+  } else if (!state && existing) existing.remove();
+}
+
+function updateCounter() {
+  document.getElementById('qCounter').textContent = `Q ${Math.min(questionCount+1,maxQuestions)} of ${maxQuestions}`;
+}
+
+function resetSession() {
+  selectedPart=null; questionCount=0; conversationHistory=[]; sessionAnswers=[]; sessionComplete=false;
+  document.getElementById('messages').innerHTML='';
+  document.getElementById('chatArea').style.display='none';
+  document.getElementById('feedbackArea').style.display='none';
+  document.getElementById('inputArea').style.display='block';
+  document.getElementById('userInput').value='';
+  document.getElementById('partSelector').style.display='block';
+  document.querySelectorAll('.part-card').forEach(c=>c.classList.remove('active'));
+  document.getElementById('startBtn').style.display='none';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className='toast'; t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),3000);
+}
+
+document.getElementById('userInput').addEventListener('keydown', e => {
+  if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendAnswer(); }
+});
+</script>
+</body>
+</html>
